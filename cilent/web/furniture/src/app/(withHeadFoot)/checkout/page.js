@@ -3,7 +3,10 @@ import axios from "axios";
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
 
+import { useRazorpay } from "react-razorpay";
+
 export default function Checkout() {
+  let { Razorpay } = useRazorpay();
   let [paymenttype, setPaymentType] = useState(0);
 
   let cartData = useSelector((store) => store.myCart.cart);
@@ -48,27 +51,57 @@ export default function Checkout() {
     console.log(cart);
     console.log(orderAmount);
     console.log(totQty);
-    let orderObj={
-        orderItems:cart,
-        shippingAddess:ShippingAddres,
-        paymentMethod:paymenttype,
-        orderAmount:orderAmount,
-        orderQty:totQty
+    let orderObj = {
+      orderItems: cart,
+      shippingAddess: ShippingAddres,
+      paymentMethod: paymenttype,
+      orderAmount: orderAmount,
+      orderQty: totQty,
+    };
+    axios
+      .post(`${apiBaseurl}order/order-save`, orderObj, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((apiRes) => apiRes.data)
+      .then((finaldata) => {
+        if (paymenttype == 1) {
+          console.log(finaldata);
+        } else {
+         
 
-    }
-     axios.post(`${apiBaseurl}order/order-save`,orderObj , {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
+          const RazorpayOrderOptions = {
+            key: "rzp_test_WAft3lA6ly3OBc",
+            amount: finaldata.amount, // Amount in paise
+            currency: "INR",
+            name: "WsCubeTech",
+            description: "WsCubeTech Transaction",
+            order_id:finaldata.id, // Generate order_id on server
+            handler: (response) => {
 
-        })
-            .then((apiRes) => apiRes.data)
-            .then((finaldata) => {
-                console.log(finaldata);
-               
+              console.log(response);
+              alert("Payment Successful!");
 
 
-            })
+            },
+            prefill: {
+              name: "John Doe",
+              email: "john.doe@example.com",
+              contact: "9999999999",
+            },
+            theme: {
+              color: "#F37254",
+            },
+          };
+
+          console.log(RazorpayOrderOptions);
+          
+          const razorpayInstance = new Razorpay(RazorpayOrderOptions);
+          razorpayInstance.open();
+
+        }
+      });
   };
 
   return (
